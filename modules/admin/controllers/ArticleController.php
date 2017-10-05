@@ -8,7 +8,10 @@ use app\models\ArticleSearch;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
-
+use app\models\ImageUpload;
+use app\models\Category;
+use yii\web\UploadedFile;
+use yii\helpers\ArrayHelper;
 /**
  * ArticleController implements the CRUD actions for Article model.
  */
@@ -75,8 +78,59 @@ class ArticleController extends Controller
     }
 
     public function actionSetImage($id){
-        var_dump($id);
+    
+        // Объект модели загрузки изображения
+        $model = new ImageUpload();
+        
+        //Если данные POST были отправлены
+        if(Yii::$app->request->isPost)
+        {
+            // Ищем запись таблицы article по id
+            $article = $this->findModel($id);
+            //Получаем данные о загруженном файле
+            $file = UploadedFile::getInstance($model, 'image');
+            
+            // Загружаем картинку и и сохраняем название картинки в БД
+            if($article->saveImageName($model->FileUpload($file, $article->image)))
+            {
+                return $this->redirect(['view','id'=>$article->id]);
+            }
+            
+        }
+        
+        return $this->render('image',[
+            'model'=>$model,
+        ]);
     }
+    
+    public function actionSetCategory($id)
+    {
+        // Получаем объект модели статьи
+        $article = $this->findModel($id);
+        // Получаем id выбраной категории
+        $selectedCat = $article->category->id;
+        //Получение всех категорий
+        $items = ArrayHelper::map(Category::find()->all(),'id','title');
+        
+        if(Yii::$app->request->isPost){
+            $categoryId = Yii::$app->request->Post('category');
+            if($article->saveCategory($categoryId))
+            {
+                return $this->redirect(['view','id'=>$article->id]);
+            }
+        }
+
+        
+        return $this->render('category',
+        [
+            'items'=>$items,
+            'selectedCat'=>$selectedCat,
+            
+        ]);
+
+    }
+    
+    
     /**
      * Updates an existing Article model.
      * If update is successful, the browser will be redirected to the 'view' page.

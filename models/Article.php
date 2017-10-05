@@ -3,6 +3,8 @@
 namespace app\models;
 
 use Yii;
+use app\models\ImageUpload;
+use app\models\Category;
 
 /**
  * This is the model class for table "article".
@@ -63,7 +65,49 @@ class Article extends \yii\db\ActiveRecord
             'category_id' => 'Category ID',
         ];
     }
+    
+    public function saveImageName($fileName)
+    {
+        $this->image = $fileName;
+        return $this->save(false);
+    }
 
+    // Удаление картинки после удаления статьи
+    public function deleteImage()
+    {
+        $imageUploadModel = new ImageUpload();
+        $imageUploadModel->deleteCurrentImage($this->image);
+    }
+    // Действие после удаления
+    public function beforeDelete()
+    {
+        // Вызываем удаление картинки
+        $this->deleteImage();
+        return parent::beforeDelete();
+    }
+    
+    public function getImage()
+    {
+        if($this->image)
+        {
+            return '/uploaded/'.$this->image;
+        }else{
+            return '/uploaded/no-photo.png';
+        }
+    }
+    public function saveCategory($categoryId)
+    {
+        if(!$categoryId == null)
+        {
+            //Получаем сатегорию по id
+            $category = Category::findOne($categoryId);
+            
+            $this->link('category',$category);
+            
+            return true;
+        }
+    }
+    
     /**
      * @return \yii\db\ActiveQuery
      */
@@ -78,5 +122,10 @@ class Article extends \yii\db\ActiveRecord
     public function getComments()
     {
         return $this->hasMany(Comment::className(), ['article_id' => 'id']);
+    }
+    
+    public function getCategory()
+    {
+        return $this->hasOne(Category::className(),['id'=>'category_id']);
     }
 }
